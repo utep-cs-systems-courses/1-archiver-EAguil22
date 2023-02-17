@@ -1,82 +1,86 @@
-# Enrique Aguilar mytar file
 #! /usr/bin/env python3
 
 import os
 import sys
 
-progName = sys.argv[0]
 files = sys.argv[1:]
 
-if progName == 'c':
-    tarC(files)
-    
-if progName == 'x':
-    tarX(files)
+containerFile = os.path.join(os.getcwd() + "/tar", "container.txt")
+compressFile = os.path.join(os.getcwd() + "/tar", "compressed.txt")
 
+if files[0] == 'c':
+    initFolder()
+    createContainer()
+    createCompressed()
+    
+elif files[0] == 'x':
+    lst = getNameSize(containerFile)
+    extractFile(lst, os.open(compressFile, os.O_RDWR))
     
 else:
-    print("invalid mode")
-
-def tarC(files):
-    if len(files):
-        for fname in files:
-            os.write(2, f"copying file: {fname}\n".encode())
-            
-            file_path = os.path.join('/dev/mt0', dest) #path is now /dev/mt0/dest
-            if not os.path.exists(file_path):
-                # create file
-                fd = os.open(file_path, os.O_RDONLY | os.O_CREAT)
-                printFromFd(fd)
-            else:
-                fd = os.open(file_path, os.O_RDONLY)
-                printFromFd(fd)
-                
-
-def tarX(files):
-
-    while len(files):
-        try:
-            fdExtract = files.pop()
-            fdDest = files.pop()
-            try:
-                os.lseek(fdExtract, 0, os.SEEK_END)
-            except:
-                err(f"seek to end of {fdExtract} failed")
-            
-            writeFromFd(fdExtract, fdDest)
-        except:
-            err(f"can't obtain file to extract or destination")
-       
-
-def writeFromFd(xfd, dest):
-    numReads = 1
-    while True:
-        try:
-            ibuf = os.read(0, 100)
-        except:
-            err("can't read from stdin")
-        if not len(ibuf): break
-        numReads += 1
-        for ofd in xfd:
-            obuf = bytes(ibuf)
-            try:
-                while len(obuf):
-                    numBytes = os.write(xfd, obuf)
-                    obuf = obuf[numBytes:]
-            except:
-                err(f"failed write to {dest}")
-                
-
-def printFromFd(ifd):
-    numReads = 1
-    while True:
-        ibuf = os.read(ifd, 100)
-        if not len(ibuf): break
-        numReads += 1
-        os.write(1, ibuf)
-    os.close(ifd)
-    os.write(2, f"EOF on {numReads}th call to read()\n".encode())
-
-def err(msg):
-    os.write(2, f"{progName}: {msg}\n".encode())
+    os.write(2, "Error mode not specified".encode())
     sys.exit(1)
+
+
+def tarFileMaker(files, fd):
+    for f in files:
+        openedFile = os.open(f, os.O_RDONLY)
+        ibuf = read(openedFile, 100)
+        while len(ibuf):
+            os.write(fd, ibuf)
+            ibuf = read(openedFile, 100)
+        os.close(openedFile)
+    
+def findLenName(files, fd):
+    for f in files:
+        openedFile = os.open(f, os.O_RDONLY)
+        ibuf = read(openedFile, 10)
+        bytesRead = len(ibuf)
+        while len(ibuf):
+            ibuf = read(openedFile, 10)
+            bytesRead += len(ibuf)
+        os.write(fd, (f + "," + str(bytesRead) + ",").encode())
+        os.close(openedFile)
+
+def getNameSize(fd):
+    tempStr = str(os.read(os.open(fd, os.O_RDONLY), 1000))
+    if tempStr.find("b'") != -1:
+        tempStr = tempStr[tempStr.find("b'") + 2:]
+    return tempStr.split(",")
+        
+def getFileNames(fd, numBytes):
+    name = read(fd, numBytes)
+    return name.decode()
+
+def initFolder():
+    path = os.getcwd() + "/tar"
+    if not os.path.exists(path):
+        os.makedirs(path)
+        
+def createTarFile(fileName):
+    path = os.path.join(os.getcwd() + "/tar", fileName)
+    if os.path.isfile(path):
+        os.remove(path)
+        os.mknod(path)
+    else:
+        os.mknode(path)
+    return path
+
+def extract(nameBytes, fd):
+    count = 0
+    while count < len(nameBytes) - 1:
+        temp = os.open(createTarFile(nameBytes[count]), os.O_RDWR)
+        count += 1
+        contents = os.read(fd, int(nameBytes[count]))
+        os.write(temp, contents)
+        count += 1
+
+def createContainer():
+    fdContain = os.open(createTarFile("container.txt"), os.O_RDWR)
+    findLenName(files, fdContain)
+    os.close(fdContain)
+    
+def createCompressed():
+    compressed = os.open(createTarFile("compressed.txt"), os.O_RDWR)
+    tarFileMaker(files, compressed)
+    os.close(compressed)
