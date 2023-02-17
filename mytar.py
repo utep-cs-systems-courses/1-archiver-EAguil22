@@ -3,24 +3,6 @@
 import os
 import sys
 
-files = sys.argv[1:]
-
-containerFile = os.path.join(os.getcwd() + "/tar", "container.txt")
-compressFile = os.path.join(os.getcwd() + "/tar", "compressed.txt")
-
-if files[0] == 'c':
-    initFolder()
-    createContainer()
-    createCompressed()
-    
-elif files[0] == 'x':
-    lst = getNameSize(containerFile)
-    extractFile(lst, os.open(compressFile, os.O_RDWR))
-    
-else:
-    os.write(2, "Error mode not specified".encode())
-    sys.exit(1)
-
 
 def tarFileMaker(files, fd):
     for f in files:
@@ -63,7 +45,7 @@ def createTarFile(fileName):
         os.remove(path)
         os.mknod(path)
     else:
-        os.mknode(path)
+        os.mknod(path)
     return path
 
 def extract(nameBytes, fd):
@@ -84,3 +66,26 @@ def createCompressed():
     compressed = os.open(createTarFile("compressed.txt"), os.O_RDWR)
     tarFileMaker(files, compressed)
     os.close(compressed)
+
+
+files = sys.argv[1:]
+
+containerFile = os.path.join(os.getcwd() + "/tar", "container.txt")
+compressFile = os.path.join(os.getcwd() + "/tar", "compressed.txt")
+
+if files[0] == 'c':
+    files = files[1:]
+    initFolder()
+    createContainer()
+    createCompressed()
+
+elif files[0] == 'x':
+    files = files[1:]
+    lst = getNameSize(containerFile)
+    extract(lst, os.open(compressFile, os.O_RDWR))
+
+else:
+    os.write(2, "Error mode not specified".encode())
+    sys.exit(1)
+
+        
