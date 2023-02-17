@@ -1,0 +1,1 @@
+foo.txt,37,goo.gif,1901,

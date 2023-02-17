@@ -2,11 +2,13 @@
 
 import os
 import sys
-
+from os import read, write
 
 def tarFileMaker(files, fd):
+    
     for f in files:
-        openedFile = os.open(f, os.O_RDONLY)
+        path = os.path.join(os.getcwd() + "/src", f)
+        openedFile = os.open(path, os.O_RDONLY)
         ibuf = read(openedFile, 100)
         while len(ibuf):
             os.write(fd, ibuf)
@@ -15,7 +17,8 @@ def tarFileMaker(files, fd):
     
 def findLenName(files, fd):
     for f in files:
-        openedFile = os.open(f, os.O_RDONLY)
+        path = os.path.join(os.getcwd() + "/src", f)
+        openedFile = os.open(path, os.O_RDONLY)
         ibuf = read(openedFile, 10)
         bytesRead = len(ibuf)
         while len(ibuf):
@@ -56,6 +59,7 @@ def extract(nameBytes, fd):
         contents = os.read(fd, int(nameBytes[count]))
         os.write(temp, contents)
         count += 1
+    os.close(fd)
 
 def createContainer():
     fdContain = os.open(createTarFile("container.txt"), os.O_RDWR)
